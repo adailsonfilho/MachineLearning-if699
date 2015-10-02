@@ -58,15 +58,22 @@ class Bayes():
 				elif processedLine[1] == ClassEnum.negative.value:
 					self.dataNegative.append(processedLine)
 
-
 	def priori(self, classId):
 		if classId == ClassEnum.negative.value:
-			return self.totalNegative/(self.totalNegative+self.totalPositive)
+			return Decimal(self.totalNegative)/Decimal(self.totalNegative+self.totalPositive)
 		elif classId == ClassEnum.positive.value:
-			return self.totalPositive/(self.totalNegative+self.totalPositive)
+			return Decimal(self.totalPositive)/Decimal(self.totalNegative+self.totalPositive)
 
 	def posteriori(self, classId, features):
-		pass
+		#Parte superior da fração
+		dividend = Decimal(self.conditionalDensity(features,classId))*Decimal(self.priori(classId))
+
+		#Divisor
+		sumAcc = Decimal(self.conditionalDensity(features,0))*Decimal(self.priori(0))
+		sumAcc += Decimal(self.conditionalDensity(features,1))*Decimal(self.priori(1))
+
+		return Decimal(dividend/sumAcc)
+		
 
 	def conditionalDensity(self, features, classId):
 		dataSource = None
@@ -76,52 +83,101 @@ class Bayes():
 			dataSource = self.dataPositive
 
 		#TODO(Adailson): CALCULAR PRODUTÓRIO AQUI! (acho que é possivel otimizar os laços calculando pij,qij e rij em um unico laço visto que o j é igual para ambos toda vez que este produtorio rodar um laço)
+		productAcc = Decimal(1)
+		i = 0;
+		for xi in features:
+			productAcc *= self.pij(i,classId)**Decimal(xi*(xi +1)/2)
+			productAcc *= self.qij(i,classId)**Decimal(1-(xi**2))
+			productAcc *= self.rij(i,classId)**Decimal(xi*(xi -1)/2)
+			i +=1
+
+		return productAcc
+
 
 	#probabilidade condicional  pij = P(xi = 1|ωj ) -> 'x'
-
-	def pij(i, classId):
+	def pij(self, i, classId):
 		dataSource = None
+		totalDatasource = None
 		if classId == ClassEnum.negative.value:
 			dataSource = self.dataNegative
+			totalDatasource = self.totalNegative
+
 		elif classId == ClassEnum.positive.value:
 			dataSource = self.dataPositive
+			totalDatasource = self.totalPositive
 
 		sumAcc = Decimal(0) #acumulador de soma
-		for example in self.dataSource:
+		for example in dataSource:
 			xi = example[0][i]
 			sumAcc += Decimal(xi*(xi+1))/Decimal(2)
 
+		sumAcc *= Decimal(1)/Decimal(totalDatasource) #equivale a 1/nj da formula desta questao
 		return sumAcc
 
 	#probabilidade condicional  qij = P(xi = 0|ωj ) -> 'o'
-	def qij(xi, classId):
+	def qij(self, i, classId):
 		dataSource = None
+		totalDatasource = None
 		if classId == ClassEnum.negative.value:
 			dataSource = self.dataNegative
+			totalDatasource = self.totalNegative
+
 		elif classId == ClassEnum.positive.value:
 			dataSource = self.dataPositive
+			totalDatasource = self.totalPositive
 
 		sumAcc = Decimal(0) #acumulador de soma
-		for example in self.dataSource:
+		for example in dataSource:
 			xi = example[0][i]
 			sumAcc += Decimal(1-xi**2)
-			
+		
+		sumAcc *= Decimal(1)/Decimal(totalDatasource) #equivale a 1/nj da formula desta questao
+
 		return sumAcc
 
 	#probabilidade condicional  qij = P(xi = -1|ωj ) -> 'b'
-	def rij(xi, classId):
+	def rij(self, i, classId):
 		dataSource = None
+		totalDatasource = None
 		if classId == ClassEnum.negative.value:
 			dataSource = self.dataNegative
+			totalDatasource = self.totalNegative
 		elif classId == ClassEnum.positive.value:
 			dataSource = self.dataPositive
+			totalDatasource = self.totalPositive
 
 		sumAcc = Decimal(0) #acumulador de soma
-		for example in self.dataSource:
+		for example in dataSource:
 			xi = example[0][i]
 			sumAcc += Decimal(xi*(xi-1))/Decimal(2)
 
+		sumAcc *= Decimal(1)/Decimal(totalDatasource) #equivale a 1/nj da formula desta questao
+
 		return sumAcc
+
+	def classify(self, features_as_string):
+		features = features_as_string.split(',')
+		try:
+			features = list(map(lambda x: FeatureEnum[x].value, features))
+		except valueError:
+			print("Ops! An error occoured. Please verify the input format")
+
+
+		if len(features) != 9:
+			raise ValueError ("Features for classification in wrong length")
+
+		p = self.posteriori(ClassEnum.positive.value, features)
+		print("Probability a posteriori POSITIVE of "+str(p))
+
+		n = self.posteriori(ClassEnum.negative.value, features)
+		print("Probability a posteriori NEGATIVE of "+str(n))
+
+		response = features_as_string+" was recognized as example of the class "
+
+		if p >= n:
+			return response+ClassEnum.positive.name
+		else:
+			return response+ClassEnum.negative.name
 
 	def runForestRun(self):
 		self.readData('../tic-tac-toe.data')
@@ -133,3 +189,9 @@ if __name__ == "__main__":
 	print("total de exemplos positivos " + str(bayes.totalPositive))
 	print("total de exemplos negativos " + str(bayes.totalNegative))
 	print("total de exemplos: " + str(bayes.totalNegative + bayes.totalPositive))
+
+	response = bayes.classify("x,b,b,x,b,b,x,b,b")
+	print(response)
+
+	response = bayes.classify("x,o,b,o,o,b,x,o,b")
+	print(response)
