@@ -37,12 +37,12 @@ class Bayes():
 				acc += x
 			elif x == '\n':
 				classId = ClassEnum[acc].value
-				if acc == ClassEnum.negative.name:
-					self.totalNegative +=1
-				elif acc == ClassEnum.positive.name:
-					self.totalPositive +=1
-				else:
-					raise ValueError('Ops! Some class name is not correct in the data input.')
+				# if acc == ClassEnum.negative.name:
+				# 	# self.totalNegative +=1
+				# elif acc == ClassEnum.positive.name:
+				# 	# self.totalPositive +=1
+				# else:
+				# 	raise ValueError('Ops! Some class name is not correct in the data input.')
 			else:
 				features.append(FeatureEnum[acc].value) # salva a categoria comseu identificador de acordo com a classe enum
 				acc = ''#reseta
@@ -52,11 +52,13 @@ class Bayes():
 	def readData(self, path):
 		with open(path) as f:
 			for line in f:
-				processedLine = self.preProcess(line,separator=',')
-				if processedLine[1] == ClassEnum.positive.value:
+				processedLine = self.preProcess(line, separator=',')
+				if processedLine[1] == ClassEnum.positive.value:# and self.totalPositive < 332:
 					self.dataPositive.append(processedLine)
+					self.totalPositive +=1
 				elif processedLine[1] == ClassEnum.negative.value:
 					self.dataNegative.append(processedLine)
+					self.totalNegative +=1
 
 	def priori(self, classId):
 		if classId == ClassEnum.negative.value:
@@ -72,7 +74,7 @@ class Bayes():
 		sumAcc = Decimal(self.conditionalDensity(features,0))*Decimal(self.priori(0))
 		sumAcc += Decimal(self.conditionalDensity(features,1))*Decimal(self.priori(1))
 
-		return Decimal(dividend/sumAcc)
+		return dividend/sumAcc
 		
 
 	def conditionalDensity(self, features, classId):
@@ -131,7 +133,7 @@ class Bayes():
 			xi = example[0][i]
 			sumAcc += Decimal(1-xi**2)
 		
-		sumAcc *= Decimal(1)/Decimal(totalDatasource) #equivale a 1/nj da formula desta questao
+		sumAcc *= (Decimal(1)/Decimal(totalDatasource)) #equivale a 1/nj da formula desta questao
 
 		return sumAcc
 
@@ -151,7 +153,7 @@ class Bayes():
 			xi = example[0][i]
 			sumAcc += Decimal(xi*(xi-1))/Decimal(2)
 
-		sumAcc *= Decimal(1)/Decimal(totalDatasource) #equivale a 1/nj da formula desta questao
+		sumAcc *= (Decimal(1)/Decimal(totalDatasource)) #equivale a 1/nj da formula desta questao
 
 		return sumAcc
 
@@ -189,9 +191,17 @@ if __name__ == "__main__":
 	print("total de exemplos positivos " + str(bayes.totalPositive))
 	print("total de exemplos negativos " + str(bayes.totalNegative))
 	print("total de exemplos: " + str(bayes.totalNegative + bayes.totalPositive))
+	print()
 
-	response = bayes.classify("x,b,b,x,b,b,x,b,b")
+	# teste ingênuo
+	response = bayes.classify("x,o,b,x,o,o,x,b,b") #Deveria dar positivo
 	print(response)
+	print()
 
-	response = bayes.classify("x,o,b,o,o,b,x,o,b")
+	response = bayes.classify("x,o,b,o,o,b,x,o,b") #Deveria dar negativo
 	print(response)
+	print()
+
+	response = bayes.classify("x,o,b,x,o,o,x,b,b") #Deveria dar negativo
+	print(response)
+	print()
