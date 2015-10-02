@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 
+#google drive
+*.ini
+
+
 # C extensions
 *.so
 
