@@ -1,9 +1,11 @@
 import os
 from enum import Enum
-from decimal import Decimal
 
 #limpa tela
 clear = lambda: os.system('cls') #to clear screen during use of console in windows
+
+#precisão do decimal
+#getcontext().prec = 100
 
 #Enumera as variaveis categóricas
 class FeatureEnum(Enum): #how use that shit? Categories['x']
@@ -22,6 +24,8 @@ class Bayes():
 		self.totalNegative = 0
 		self.dataPositive = []
 		self.dataNegative = []
+		self.dataPositiveTest = []
+		self.dataNegativeTest = []
 
 	def preProcess(self, line, separator):
 		#Adailson: Este método poderia ser feito com split(','), mas a performance ia cair um pouco (onde a gente puder ganhar em performance nesse tipo de aplicação é importante)
@@ -55,24 +59,50 @@ class Bayes():
 				processedLine = self.preProcess(line, separator=',')
 				if processedLine[1] == ClassEnum.positive.value:# and self.totalPositive < 332:
 					self.dataPositive.append(processedLine)
-					self.totalPositive +=1
+					# self.totalPositive +=1
 				elif processedLine[1] == ClassEnum.negative.value:
 					self.dataNegative.append(processedLine)
-					self.totalNegative +=1
+					# self.totalNegative +=1
+
+		#separar parte de aprendizado de parte de testes.
+
+		#70% para aprendizado - 30% para testes
+		percentTest = 0.3
+		positives = len(self.dataPositive)
+		negatives = len(self.dataNegative)
+
+		cond1 = True
+		cond2 = True
+		
+		while(cond1 or cond2):
+
+			cond1= len(self.dataPositiveTest) < int(positives*percentTest)
+			cond2 = len(self.dataNegativeTest) < int(negatives*percentTest)
+
+			if cond1:
+				self.dataPositiveTest.append(self.dataPositive.pop())
+			if cond2:
+				self.dataNegativeTest.append(self.dataNegative.pop())
+
+			
+
+		self.totalPositive = len(self.dataPositive)
+		self.totalNegative = len(self.dataNegative)
+
 
 	def priori(self, classId):
 		if classId == ClassEnum.negative.value:
-			return Decimal(self.totalNegative)/Decimal(self.totalNegative+self.totalPositive)
+			return (self.totalNegative)/(self.totalNegative+self.totalPositive)
 		elif classId == ClassEnum.positive.value:
-			return Decimal(self.totalPositive)/Decimal(self.totalNegative+self.totalPositive)
+			return (self.totalPositive)/(self.totalNegative+self.totalPositive)
 
 	def posteriori(self, classId, features):
 		#Parte superior da fração
-		dividend = Decimal(self.conditionalDensity(features,classId))*Decimal(self.priori(classId))
+		dividend = (self.conditionalDensity(features,classId))*(self.priori(classId))
 
 		#Divisor
-		sumAcc = Decimal(self.conditionalDensity(features,0))*Decimal(self.priori(0))
-		sumAcc += Decimal(self.conditionalDensity(features,1))*Decimal(self.priori(1))
+		sumAcc = (self.conditionalDensity(features,ClassEnum.positive.value))*(self.priori(ClassEnum.positive.value))
+		sumAcc += (self.conditionalDensity(features,ClassEnum.negative.value))*(self.priori(ClassEnum.negative.value))
 
 		return dividend/sumAcc
 		
@@ -83,14 +113,16 @@ class Bayes():
 			dataSource = self.dataNegative
 		elif classId == ClassEnum.positive.value:
 			dataSource = self.dataPositive
+		else:
+			raise ValueError("Wrong type class")
 
 		#TODO(Adailson): CALCULAR PRODUTÓRIO AQUI! (acho que é possivel otimizar os laços calculando pij,qij e rij em um unico laço visto que o j é igual para ambos toda vez que este produtorio rodar um laço)
-		productAcc = Decimal(1)
+		productAcc = (1)
 		i = 0;
 		for xi in features:
-			productAcc *= self.pij(i,classId)**Decimal(xi*(xi +1)/2)
-			productAcc *= self.qij(i,classId)**Decimal(1-(xi**2))
-			productAcc *= self.rij(i,classId)**Decimal(xi*(xi -1)/2)
+			productAcc *= self.pij(i,classId)**(xi*(xi +1)/2)
+			productAcc *= self.qij(i,classId)**(1-(xi**2))
+			productAcc *= self.rij(i,classId)**(xi*(xi -1)/2)
 			i +=1
 
 		return productAcc
@@ -107,13 +139,15 @@ class Bayes():
 		elif classId == ClassEnum.positive.value:
 			dataSource = self.dataPositive
 			totalDatasource = self.totalPositive
+		else:
+			raise ValueError("Wrong type class")
 
-		sumAcc = Decimal(0) #acumulador de soma
+		sumAcc = (0) #acumulador de soma
 		for example in dataSource:
 			xi = example[0][i]
-			sumAcc += Decimal(xi*(xi+1))/Decimal(2)
+			sumAcc += (xi*(xi+1))/(2)
 
-		sumAcc *= Decimal(1)/Decimal(totalDatasource) #equivale a 1/nj da formula desta questao
+		sumAcc *= (1)/(totalDatasource) #equivale a 1/nj da formula desta questao
 		return sumAcc
 
 	#probabilidade condicional  qij = P(xi = 0|ωj ) -> 'o'
@@ -128,12 +162,12 @@ class Bayes():
 			dataSource = self.dataPositive
 			totalDatasource = self.totalPositive
 
-		sumAcc = Decimal(0) #acumulador de soma
+		sumAcc = (0) #acumulador de soma
 		for example in dataSource:
 			xi = example[0][i]
-			sumAcc += Decimal(1-xi**2)
+			sumAcc += (1-xi**2)
 		
-		sumAcc *= (Decimal(1)/Decimal(totalDatasource)) #equivale a 1/nj da formula desta questao
+		sumAcc *= ((1)/(totalDatasource)) #equivale a 1/nj da formula desta questao
 
 		return sumAcc
 
@@ -148,38 +182,84 @@ class Bayes():
 			dataSource = self.dataPositive
 			totalDatasource = self.totalPositive
 
-		sumAcc = Decimal(0) #acumulador de soma
+		sumAcc = (0) #acumulador de soma
 		for example in dataSource:
 			xi = example[0][i]
-			sumAcc += Decimal(xi*(xi-1))/Decimal(2)
+			sumAcc += (xi*(xi-1))/(2)
 
-		sumAcc *= (Decimal(1)/Decimal(totalDatasource)) #equivale a 1/nj da formula desta questao
+		sumAcc *= ((1)/(totalDatasource)) #equivale a 1/nj da formula desta questao
 
 		return sumAcc
 
-	def classify(self, features_as_string):
-		features = features_as_string.split(',')
-		try:
-			features = list(map(lambda x: FeatureEnum[x].value, features))
-		except valueError:
-			print("Ops! An error occoured. Please verify the input format")
-
-
-		if len(features) != 9:
-			raise ValueError ("Features for classification in wrong length")
-
+	def classify(self, features):
 		p = self.posteriori(ClassEnum.positive.value, features)
-		print("Probability a posteriori POSITIVE of "+str(p))
+		# print("Probability a posteriori POSITIVE of "+str(p))
 
 		n = self.posteriori(ClassEnum.negative.value, features)
-		print("Probability a posteriori NEGATIVE of "+str(n))
+		# print("Probability a posteriori NEGATIVE of "+str(n))
 
-		response = features_as_string+" was recognized as example of the class "
+		#response = features_as_string+" was recognized as example of the class"
 
 		if p >= n:
-			return response+ClassEnum.positive.name
+			ClassEnum.positive.value
 		else:
-			return response+ClassEnum.negative.name
+			ClassEnum.negative.value
+
+
+	# def classify(self, string features_as_string):
+	# 	features = features_as_string.split(',')
+	# 	try:
+	# 		features = list(map(lambda x: FeatureEnum[x].value, features))
+	# 	except valueError:
+	# 		print("Ops! An error occoured. Please verify the input format")
+
+
+	# 	if len(features) != 9:
+	# 		raise ValueError ("Features for classification in wrong length")
+
+	# 	p = self.posteriori(ClassEnum.positive.value, features)
+	# 	print("Probability a posteriori POSITIVE of "+str(p))
+
+	# 	n = self.posteriori(ClassEnum.negative.value, features)
+	# 	print("Probability a posteriori NEGATIVE of "+str(n))
+
+	# 	response = features_as_string+" was recognized as example of the class "
+
+	# 	if p >= n:
+	# 		return response+ClassEnum.positive.name
+	# 	else:
+	# 		return response+ClassEnum.negative.name
+
+	def runTests(self):
+		errorsPositive = 0
+
+		for p in self.dataPositiveTest:
+			answer = self.classify(p[0])
+			if answer != p[1]:
+				errorsPositive += 1
+
+		errorsNegative = 0
+		for n in self.dataNegativeTest:
+			answer = self.classify(n[0])
+			if answer != n[1]:
+				errorsNegative += 1
+
+		totalOk = (len(self.dataPositiveTest)-errorsPositive+len(self.dataNegativeTest)-errorsNegative)/(len(self.dataPositiveTest)+len(self.dataNegativeTest))
+		totalError = (errorsPositive+errorsNegative)/(len(self.dataPositiveTest)+len(self.dataNegativeTest))
+
+		print("------------------")
+		print("----- REPORT -----")
+		print("------------------")
+		print()
+		print(" Total correct : "+str(totalOk*100)+"%")
+		print(" -> Correct answers (Positive examples): "+str((len(self.dataPositiveTest)-errorsPositive)))
+		print(" -> Correct answers (negative examples): "+str((len(self.dataNegativeTest)-errorsNegative)))
+		print()
+		print(" Total worng : "+str(totalError*100)+"%")
+		print(" -> Correct answers (Positive examples): "+str((len(self.dataPositiveTest)-errorsPositive)))
+		print(" -> Correct answers (negative examples): "+str((len(self.dataNegativeTest)-errorsNegative)))
+
+
 
 	def runForestRun(self):
 		self.readData('../tic-tac-toe.data')
@@ -192,16 +272,22 @@ if __name__ == "__main__":
 	print("total de exemplos negativos " + str(bayes.totalNegative))
 	print("total de exemplos: " + str(bayes.totalNegative + bayes.totalPositive))
 	print()
+	bayes.runTests()
+
 
 	# teste ingênuo
-	response = bayes.classify("x,o,b,x,o,o,x,b,b") #Deveria dar positivo
-	print(response)
-	print()
+	# response = bayes.classify("x,o,b,x,o,o,x,b,b") #Deveria dar positivo
+	# print(response)
+	# print()
 
-	response = bayes.classify("x,o,b,o,o,b,x,o,b") #Deveria dar negativo
-	print(response)
-	print()
+	# response = bayes.classify("x,o,b,o,o,b,x,o,b") #Deveria dar negativo
+	# print(response)
+	# print()
 
-	response = bayes.classify("x,o,b,x,o,o,x,b,b") #Deveria dar negativo
-	print(response)
-	print()
+	# response = bayes.classify("x,o,b,x,o,o,x,b,b") #Deveria dar positivo
+	# print(response)
+	# print()
+
+	# response = bayes.classify("o,o,x,o,x,b,o,o,b") #Deveria dar negativo
+	# print(response)
+	# print()
