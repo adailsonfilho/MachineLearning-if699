@@ -187,17 +187,18 @@ class Bayes():
 
 	def classify(self, features):
 		p = self.posteriori(ClassEnum.positive.value, features)
-		# print("Probability a posteriori POSITIVE of "+str(p))
+		print(str(features))
+		print("Probability a posteriori for POSITIVE of "+str(p))
 
 		n = self.posteriori(ClassEnum.negative.value, features)
-		# print("Probability a posteriori NEGATIVE of "+str(n))
+		print("Probability a posteriori for NEGATIVE of "+str(n))
 
 		#response = features_as_string+" was recognized as example of the class"
 
-		if p >= n:
-			ClassEnum.positive.value
+		if p > n:
+			return ClassEnum.positive.value
 		else:
-			ClassEnum.negative.value
+			return ClassEnum.negative.value
 
 
 	# def classify(self, string features_as_string):
@@ -227,15 +228,17 @@ class Bayes():
 	def runTests(self):
 		errorsPositive = 0
 
+		print("Wait! Processing ...")
+
 		for p in self.dataPositiveTest:
 			answer = self.classify(p[0])
-			if answer != p[1]:
+			if answer != ClassEnum.positive.value:
 				errorsPositive += 1
 
 		errorsNegative = 0
 		for n in self.dataNegativeTest:
 			answer = self.classify(n[0])
-			if answer != n[1]:
+			if answer != ClassEnum.negative.value:
 				errorsNegative += 1
 
 		totalOk = (len(self.dataPositiveTest)-errorsPositive+len(self.dataNegativeTest)-errorsNegative)/(len(self.dataPositiveTest)+len(self.dataNegativeTest))
