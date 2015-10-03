@@ -1,11 +1,9 @@
 import os
 from enum import Enum
+from decimal import *
 
 #limpa tela
 clear = lambda: os.system('cls') #to clear screen during use of console in windows
-
-#precisão do decimal
-#getcontext().prec = 100
 
 #Enumera as variaveis categóricas
 class FeatureEnum(Enum): #how use that shit? Categories['x']
@@ -66,8 +64,8 @@ class Bayes():
 
 		#separar parte de aprendizado de parte de testes.
 
-		#70% para aprendizado - 30% para testes
-		percentTest = 0.3
+		#70% para aprendizado #30% para testes
+		percentTest = 0.15
 		positives = len(self.dataPositive)
 		negatives = len(self.dataNegative)
 
@@ -92,17 +90,17 @@ class Bayes():
 
 	def priori(self, classId):
 		if classId == ClassEnum.negative.value:
-			return (self.totalNegative)/(self.totalNegative+self.totalPositive)
+			return float(self.totalNegative)/float(self.totalNegative+self.totalPositive)
 		elif classId == ClassEnum.positive.value:
-			return (self.totalPositive)/(self.totalNegative+self.totalPositive)
+			return float(self.totalPositive)/float(self.totalNegative+self.totalPositive)
 
 	def posteriori(self, classId, features):
 		#Parte superior da fração
-		dividend = (self.conditionalDensity(features,classId))*(self.priori(classId))
+		dividend = float(self.conditionalDensity(features,classId))*float(self.priori(classId))
 
 		#Divisor
-		sumAcc = (self.conditionalDensity(features,ClassEnum.positive.value))*(self.priori(ClassEnum.positive.value))
-		sumAcc += (self.conditionalDensity(features,ClassEnum.negative.value))*(self.priori(ClassEnum.negative.value))
+		sumAcc = float(self.conditionalDensity(features,0))*float(self.priori(0))
+		sumAcc += float(self.conditionalDensity(features,1))*float(self.priori(1))
 
 		return dividend/sumAcc
 		
@@ -113,16 +111,14 @@ class Bayes():
 			dataSource = self.dataNegative
 		elif classId == ClassEnum.positive.value:
 			dataSource = self.dataPositive
-		else:
-			raise ValueError("Wrong type class")
 
 		#TODO(Adailson): CALCULAR PRODUTÓRIO AQUI! (acho que é possivel otimizar os laços calculando pij,qij e rij em um unico laço visto que o j é igual para ambos toda vez que este produtorio rodar um laço)
-		productAcc = (1)
+		productAcc = float(1)
 		i = 0;
 		for xi in features:
-			productAcc *= self.pij(i,classId)**(xi*(xi +1)/2)
-			productAcc *= self.qij(i,classId)**(1-(xi**2))
-			productAcc *= self.rij(i,classId)**(xi*(xi -1)/2)
+			productAcc *= self.pij(i,classId)**float(xi*(xi +1)/2)
+			productAcc *= self.qij(i,classId)**float(1-(xi**2))
+			productAcc *= self.rij(i,classId)**float(xi*(xi -1)/2)
 			i +=1
 
 		return productAcc
@@ -139,15 +135,13 @@ class Bayes():
 		elif classId == ClassEnum.positive.value:
 			dataSource = self.dataPositive
 			totalDatasource = self.totalPositive
-		else:
-			raise ValueError("Wrong type class")
 
-		sumAcc = (0) #acumulador de soma
+		sumAcc = float(0) #acumulador de soma
 		for example in dataSource:
 			xi = example[0][i]
-			sumAcc += (xi*(xi+1))/(2)
+			sumAcc += float(xi*(xi+1))/float(2)
 
-		sumAcc *= (1)/(totalDatasource) #equivale a 1/nj da formula desta questao
+		sumAcc *= float(1)/float(totalDatasource) #equivale a 1/nj da formula desta questao
 		return sumAcc
 
 	#probabilidade condicional  qij = P(xi = 0|ωj ) -> 'o'
@@ -162,12 +156,12 @@ class Bayes():
 			dataSource = self.dataPositive
 			totalDatasource = self.totalPositive
 
-		sumAcc = (0) #acumulador de soma
+		sumAcc = float(0) #acumulador de soma
 		for example in dataSource:
 			xi = example[0][i]
-			sumAcc += (1-xi**2)
+			sumAcc += float(1-xi**2)
 		
-		sumAcc *= ((1)/(totalDatasource)) #equivale a 1/nj da formula desta questao
+		sumAcc *= float(1)/float(totalDatasource) #equivale a 1/nj da formula desta questao
 
 		return sumAcc
 
@@ -182,12 +176,12 @@ class Bayes():
 			dataSource = self.dataPositive
 			totalDatasource = self.totalPositive
 
-		sumAcc = (0) #acumulador de soma
+		sumAcc = float(0) #acumulador de soma
 		for example in dataSource:
 			xi = example[0][i]
-			sumAcc += (xi*(xi-1))/(2)
+			sumAcc += float(xi*(xi-1))/float(2)
 
-		sumAcc *= ((1)/(totalDatasource)) #equivale a 1/nj da formula desta questao
+		sumAcc *= (float(1)/float(totalDatasource)) #equivale a 1/nj da formula desta questao
 
 		return sumAcc
 
@@ -256,8 +250,8 @@ class Bayes():
 		print(" -> Correct answers (negative examples): "+str((len(self.dataNegativeTest)-errorsNegative)))
 		print()
 		print(" Total worng : "+str(totalError*100)+"%")
-		print(" -> Correct answers (Positive examples): "+str((len(self.dataPositiveTest)-errorsPositive)))
-		print(" -> Correct answers (negative examples): "+str((len(self.dataNegativeTest)-errorsNegative)))
+		print(" -> wrong answers (Positive examples): "+str(errorsPositive))
+		print(" -> wrong answers (negative examples): "+str(errorsNegative))
 
 
 
