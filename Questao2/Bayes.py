@@ -67,30 +67,10 @@ class Bayes():
 		with open(path) as f:
 			for line in f:
 				processedLine = self.preProcess(line, separator=',')
-				if processedLine[1] == ClassEnum.positive.value: #and len(self.data_positive_learn) < 332:
+				if processedLine[1] == ClassEnum.positive.value: #and len(self.data_positive) < 332:
 					self.data_positive.append(processedLine)
 				elif processedLine[1] == ClassEnum.negative.value:
 					self.data_negative.append(processedLine)
-
-		# #separar parte de aprendizado de parte de testes.
-
-		# #70% para aprendizado #30% para testes
-		# percentTest = 0.2
-		# positives = len(self.data_positive_learn)
-		# negatives = len(self.data_negative_learn)
-
-		# cond1 = True
-		# cond2 = True
-		
-		# while(cond1 or cond2):
-
-		# 	cond1= len(self.data_positive_learn_test) < int(positives*percentTest)
-		# 	cond2 = len(self.data_negative_learn_test) < int(negatives*percentTest)
-
-		# 	if cond1:
-		# 		self.data_positive_learn_test.append(self.data_positive_learn.pop())
-		# 	if cond2:
-		# 		self.data_negative_learn_test.append(self.data_negative_learn.pop())
 
 
 	def priori(self, classId):
@@ -131,7 +111,7 @@ class Bayes():
 				q = 1
 
 			r_exp = Decimal(xi*(xi -1))/Decimal(2)
-			r = Decimal(self.rij(i,classId))**r_exp
+			r = getcontext().power(Decimal(self.rij(i,classId)),r_exp)
 			if r == 0:
 				r = 1
 			productAcc *= p
