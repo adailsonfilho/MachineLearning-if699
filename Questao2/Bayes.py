@@ -2,13 +2,14 @@ import os
 from decimal import *
 from random import randint
 from ticTacToe import *
+from classifier import *
 
 #limpa tela
 clear = lambda: os.system('cls') #to clear screen during use of console in windows
 
 getcontext().prec += 10
 
-class Bayes():
+class Bayes(Classifier):
 	def __init__(self):
 
 		self.total_positive = 0
@@ -26,10 +27,10 @@ class Bayes():
 		# self.positive_test_range = None
 		# self.negative_test_range= None
 
-	def readData(self, path):
+	def read_data(self, path):
 		with open(path) as f:
 			for line in f:
-				processedLine = preProcess(line, separator=',')
+				processedLine = pre_process(line, separator=',')
 				if processedLine[1] == ClassEnum.positive.value: #and len(self.data_positive) < 332:
 					self.data_positive.append(processedLine)
 				elif processedLine[1] == ClassEnum.negative.value:
@@ -342,40 +343,8 @@ class Bayes():
 		print("Avarage of correct answers: "+str((all_corrects)/(all_wrongs+all_corrects)*100)+"%")
 		print("-----------------------------------------------")
 
-		# errorsPositive = 0
-
-		# print("Wait! Processing ...")
-
-		# for p in self.data_positive_learn_test:
-		# 	answer = self.classify(p[0])
-		# 	if answer != ClassEnum.positive.value:
-		# 		errorsPositive += 1
-
-		# errorsNegative = 0
-		# for n in self.data_negative_learn_test:
-		# 	answer = self.classify(n[0])
-		# 	if answer != ClassEnum.negative.value:
-		# 		errorsNegative += 1
-
-		# totalOk = (len(self.data_positive_learn_test)-errorsPositive+len(self.data_negative_learn_test)-errorsNegative)/(len(self.data_positive_learn_test)+len(self.data_negative_learn_test))
-		# totalError = (errorsPositive+errorsNegative)/(len(self.data_positive_learn_test)+len(self.data_negative_learn_test))
-
-		# print("------------------")
-		# print("----- REPORT -----")
-		# print("------------------")
-		# print()
-		# print(" Total correct : "+str(totalOk*100)+"%")
-		# print(" -> Correct answers (Positive examples): "+str((len(self.data_positive_learn_test)-errorsPositive)))
-		# print(" -> Correct answers (negative examples): "+str((len(self.data_negative_learn_test)-errorsNegative)))
-		# print()
-		# print(" Total worng : "+str(totalError*100)+"%")
-		# print(" -> wrong answers (Positive examples): "+str(errorsPositive))
-		# print(" -> wrong answers (negative examples): "+str(errorsNegative))
-
-
-
 	def runForestRun(self):
-		self.readData('../tic-tac-toe.data')
+		self.read_data('../tic-tac-toe.data')
 
 if __name__ == "__main__":
 
@@ -390,7 +359,6 @@ if __name__ == "__main__":
 	print()
 
 	bayes.run_KFold_Cross_Validation(10)
-
 
 	# the greatest naive test
 	# response = bayes.classify("x,o,b,x,o,o,x,b,b") #Deveria dar positivo
