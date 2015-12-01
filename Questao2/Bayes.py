@@ -1,23 +1,12 @@
 import os
-from enum import Enum
 from decimal import *
 from random import randint
+from ticTacToeEnum import *
 
 #limpa tela
 clear = lambda: os.system('cls') #to clear screen during use of console in windows
 
 getcontext().prec += 10
-
-#Enumera as variaveis categóricas
-class FeatureEnum(Enum): #how use that shit? Categories['x']
-	x = 1
-	o = 0
-	b = -1
-
-#enumera as classes
-class ClassEnum(Enum): #how use that shit? Class['positive']
-	positive = 1
-	negative = 0
 
 class Bayes():
 	def __init__(self):
@@ -37,36 +26,10 @@ class Bayes():
 		# self.positive_test_range = None
 		# self.negative_test_range= None
 
-	def preProcess(self, line, separator):
-		#Adailson: Este método poderia ser feito com split(','), mas a performance ia cair um pouco (onde a gente puder ganhar em performance nesse tipo de aplicação é importante)
-
-		features = []#ira armazenas os dados convertidos. Ex: "x,x,x,o,o,o,b,b,b,positivo" vira ([1,1,1,0,0,0,-1,-1,-1],1) (de acordo com a classe enum)
-		classId = None
-		acc = '' #acumulador
-
-		#line += '$'#para servir de referencia do fim do token
-
-		for x in line:
-			if x != ',' and x != '\n':
-				acc += x
-			elif x == '\n':
-				classId = ClassEnum[acc].value
-				# if acc == ClassEnum.negative.name:
-				# 	# self.total_negative +=1
-				# elif acc == ClassEnum.positive.name:
-				# 	# self.total_positive +=1
-				# else:
-				# 	raise ValueError('Ops! Some class name is not correct in the data input.')
-			else:
-				features.append(FeatureEnum[acc].value) # salva a categoria comseu identificador de acordo com a classe enum
-				acc = ''#reseta
-		# print(str(features)+" "+str(classId))
-		return (features,classId)
-
 	def readData(self, path):
 		with open(path) as f:
 			for line in f:
-				processedLine = self.preProcess(line, separator=',')
+				processedLine = preProcess(line, separator=',')
 				if processedLine[1] == ClassEnum.positive.value: #and len(self.data_positive) < 332:
 					self.data_positive.append(processedLine)
 				elif processedLine[1] == ClassEnum.negative.value:
@@ -277,6 +240,7 @@ class Bayes():
 		for set_index in range(0,k):
 
 			print("creating positive set index "+str(set_index))
+			
 			#initiate list
 			positive_sets.append([])
 
