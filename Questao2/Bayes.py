@@ -1,7 +1,7 @@
 import os
 from decimal import *
 from random import randint
-from ticTacToeEnum import *
+from ticTacToe import *
 
 #limpa tela
 clear = lambda: os.system('cls') #to clear screen during use of console in windows
