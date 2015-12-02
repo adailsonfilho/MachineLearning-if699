@@ -1,158 +1,64 @@
-import os
 import sys
-from decimal import *
-from random import randint
 from ticTacToe import *
+from enum import Enum
 from classifier import *
+from random import randint
+import ipdb
+import numpy as np
 
-#limpa tela
-clear = lambda: os.system('cls') #to clear screen during use of console in windows
+##################
+#### METHODS #####
+##################
 
-getcontext().prec += 10
+class PostKnnEstimation(Classifier):
 
-class Bayes(Classifier):
 	def __init__(self):
+		##################
+		#####  VARS ######
+		##################
+		self.p_learn_size = 0
+		self.n_learn_size = 0
+		self.data = [] 			#pre-processed data
+		self.data_positive = [] 	#data splited for cross k-fold validation
+		self.data_negative = []  #data splited for cross k-fold validation
+		self.learn_data = []		#data var for lear sets of cross k-fold validation
+		self.k = None			#"k" neighbors parameter
 
-		self.total_positive = 0
-		self.total_negative = 0
+	def set_data(self, data):
+			self.data = data
 
-		#All data raded from files after pre-process
-		self.data_positive = []
-		self.data_negative = []
+	#return the "k" nearest neighbors of the given "x"
+	def k_neighbors(self, k,x):		
 
-		#data for learning after
-		self.data_positive_learn = []
-		self.data_negative_learn = []
+		distances = []
+		for i,sample in enumerate(self.learn_data):
+			d = dissimilarity(x, sample[0])
+			# d = np.linalg.norm(np.array(x),np.array(sample[0]))
+			distances.append({'index': i, 'distance': d})
 
-		#for use in tests k-fold
-		# self.positive_test_range = None
-		# self.negative_test_range= None
+		distances = sorted(distances, key=lambda e:e['distance'])
 
-	def set_data(self, w1,w2):
-		self.data_positive = w1
-		self.data_negative = w2
+		return [e['index'] for e in distances[0:k]]
 
-	def priori(self, classId):
-		if classId == ClassEnum.negative.value:
-			return Decimal(len(self.data_negative_learn))/Decimal(len(self.data_negative_learn) + len(self.data_positive_learn))
-		elif classId == ClassEnum.positive.value:
-			return Decimal(len(self.data_positive_learn))/Decimal(len(self.data_negative_learn) + len(self.data_positive_learn))
+	def classify(self,sample):
+		# sample = pre_process(sample, separator=',')
+		kn = self.k_neighbors(self.k,sample)
+		positive_votes = 0
+		negative_votes = 0
+		for i in kn:
+			if self.learn_data[i][1] == ClassEnum.positive.value:
+				positive_votes+=1
+			elif self.learn_data[i][1] == ClassEnum.negative.value:
+				negative_votes += 1
+			else:
+				raise "Ops!Some some problem to classify in the correct class"
 
-	def posteriori(self, classId, features):
-		#Parte superior da fração |   P(x|ωl)P(ωl)
-		dividend = Decimal(self.conditionalDensity(features,classId))*Decimal(self.priori(classId))
-
-		#Divisor
-		sumAcc = Decimal(self.conditionalDensity(features, ClassEnum.positive.value))*Decimal(self.priori(ClassEnum.positive.value))
-		sumAcc += Decimal(self.conditionalDensity(features, ClassEnum.negative.value))*Decimal(self.priori(ClassEnum.negative.value))
-
-		return dividend/sumAcc
-		
-
-	def conditionalDensity(self, features, classId):
-		dataSource = None
-		if classId == ClassEnum.negative.value:
-			dataSource = self.data_negative_learn
-		elif classId == ClassEnum.positive.value:
-			dataSource = self.data_positive_learn
-
-		#TODO(Adailson): CALCULAR PRODUTÓRIO AQUI! (acho que é possivel otimizar os laços calculando pij,qij e rij em um unico laço visto que o j é igual para ambos toda vez que este produtorio rodar um laço)
-		productAcc = Decimal(1)
-		i = 0;
-		for xi in features:
-
-			p = Decimal(self.pij(i,classId))**(Decimal(xi*(xi +1))/Decimal(2))
-			if p == 0:
-				p = 1
-
-			q = Decimal(self.qij(i,classId))**(Decimal(1)-Decimal(xi**2))
-			if q == 0:
-				q = 1
-
-			r_exp = Decimal(xi*(xi -1))/Decimal(2)
-			r = getcontext().power(Decimal(self.rij(i,classId)),r_exp)
-			if r == 0:
-				r = 1
-			productAcc *= p
-			productAcc *= q
-			productAcc *= r
-			i +=1
-
-		return productAcc
-
-	#probabilidade condicional  pij = P(xi = 1|ωj ) -> 'x'
-	def pij(self, i, classId):
-		dataSource = None
-		total_datasource = None
-		if classId == ClassEnum.negative.value:
-			total_datasource = len(self.data_negative_learn)
-			dataSource = self.data_negative_learn
-
-		elif classId == ClassEnum.positive.value:
-			total_datasource = len(self.data_positive_learn)
-			dataSource = self.data_positive_learn
-
-		sumAcc = Decimal(0) #acumulador de soma
-		for example in dataSource:
-			xi = example[0][i]
-			sumAcc += Decimal(xi*(xi+1))/Decimal(2)
-
-		sumAcc *= Decimal(1)/Decimal(total_datasource) #equivale a 1/nj da formula desta questao
-		# print('prod pij = '+str(sumAcc))
-		return sumAcc
-
-	#probabilidade condicional  qij = P(xi = 0|ωj ) -> 'o'
-	def qij(self, i, classId):
-		dataSource = None
-		total_datasource = None
-		if classId == ClassEnum.negative.value:
-			total_datasource = len(self.data_negative_learn)
-			dataSource = self.data_negative_learn
-
-		elif classId == ClassEnum.positive.value:
-			total_datasource = len(self.data_positive_learn)
-			dataSource = self.data_positive_learn
-
-		sumAcc = Decimal(0) #acumulador de soma
-		for example in dataSource:
-			xi = example[0][i]
-			sumAcc += Decimal(1-(xi**2))
-		
-		sumAcc *= Decimal(1)/Decimal(total_datasource) #equivale a 1/nj da formula desta questao
-		# print('prod qij = '+str(sumAcc))
-		return sumAcc
-
-	#probabilidade condicional  qij = P(xi = -1|ωj ) -> 'b'
-	def rij(self, i, classId):
-		dataSource = None
-		total_datasource = None
-		if classId == ClassEnum.negative.value:
-			total_datasource = len(self.data_negative_learn)
-			dataSource = self.data_negative_learn
-
-		elif classId == ClassEnum.positive.value:
-			total_datasource = len(self.data_positive_learn)
-			dataSource = self.data_positive_learn
-
-		sumAcc = Decimal(0) #acumulador de soma
-		for example in dataSource:
-			xi = example[0][i]
-			sumAcc += Decimal(xi*(xi-1))/Decimal(2)
-
-		sumAcc *= (Decimal(1)/Decimal(total_datasource)) #equivale a 1/nj da formula desta questao
-
-		# print('prod rij = '+str(sumAcc))
-		return sumAcc
-
-	def classify(self, features):
-		p = self.posteriori(ClassEnum.positive.value, features)
-		n = self.posteriori(ClassEnum.negative.value, features)
-
-		if p > n:
-			return ClassEnum.positive.value
-		else:
+		n_estimation = (negative_votes/self.n_learn_size)*(self.n_learn_size/len(self.learn_data))
+		p_estimation = (positive_votes/self.p_learn_size)*(self.p_learn_size/len(self.learn_data))
+		if n_estimation > p_estimation:
 			return ClassEnum.negative.value
-
+		else:
+			return ClassEnum.positive.value
 
 	def calculateRange(self,next_range, set_size, max_length, is_last_set):
 		#calculate test positive range
@@ -165,8 +71,13 @@ class Bayes(Classifier):
 
 			return {"begin":start,"end":end}
 
-
 	def kFold_Cross_Validation(self, k):
+
+		for sample in self.data:
+			if sample[1] == ClassEnum.positive.value:
+				self.data_positive.append(sample)
+			elif sample[1] == ClassEnum.negative.value:
+				self.data_negative.append(sample)
 
 		print("> Cross K-Fold Validation")
 		print()
@@ -241,8 +152,8 @@ class Bayes(Classifier):
 			# print("Created: "+str(len(positive_sets[set_index]))+" samples")
 
 			#copy lists
-			# temp_data_positive = self.data_positive[:]
-			# temp_data_negative = self.data_negative[:]
+			temp_data_positive = self.data_positive[:]
+			temp_data_negative = self.data_negative[:]
 
 			#end for: creating sets
 
@@ -260,8 +171,7 @@ class Bayes(Classifier):
 			errors_negative = 0
 
 			#zera apontador de listas de aprendizado
-			self.data_positive_learn = []
-			self.data_negative_learn = []
+			self.learn_data = []
 
 			#a quantidade de conjuntos de classe eh igual apesar da diferença existir
 			data_positive_test = positive_sets[index_test]
@@ -272,10 +182,15 @@ class Bayes(Classifier):
 			# print("Positive Set "+str(index_test)+", size: "+str(len(data_positive_test)))
 
 			#cria lista de dados para aprendizagem com os sub-conjuntos que não sao de test
+			self.p_learn_size = 0
+			self.n_learn_size = 0
 			for i in range(0,k):
 				if i != index_test:
-					self.data_positive_learn += positive_sets[i]
-					self.data_negative_learn += negative_sets[i]
+					self.learn_data += positive_sets[i]
+					self.p_learn_size += len(positive_sets[i])
+
+					self.learn_data += negative_sets[i]
+					self.n_learn_size += len(negative_sets[i])
 
 			samples_p = 0
 			for p in data_positive_test:
