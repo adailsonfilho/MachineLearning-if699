@@ -5,11 +5,6 @@ from enum import  Enum
 from sklearn import svm
 from random import randint
 
-
-
-
-
-
 class FeatureEnum(Enum):
 	x = 1
 	o = 0
@@ -197,19 +192,13 @@ class SupportVectorMachine():
         	x = []
         	y = []
 
-
-
         	for z in all_data:
         		x.append(z[1])
         		y.append(z[0])
-        		#ipdb.set_trace()
-        		
 
         	clf = svm.SVC(decision_function_shape='ovr')
         	print("Starting SVM classification")
         	clf.fit(x, y)
-
-
         	
         	samples_p = 0
         	for p in data_positive_test:

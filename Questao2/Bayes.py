@@ -24,10 +24,6 @@ class Bayes(Classifier):
 		self.data_positive_learn = []
 		self.data_negative_learn = []
 
-		#for use in tests k-fold
-		# self.positive_test_range = None
-		# self.negative_test_range= None
-
 	def set_data(self, w1,w2):
 		self.data_positive = w1
 		self.data_negative = w2
@@ -46,8 +42,7 @@ class Bayes(Classifier):
 		sumAcc = Decimal(self.conditionalDensity(features, ClassEnum.positive.value))*Decimal(self.priori(ClassEnum.positive.value))
 		sumAcc += Decimal(self.conditionalDensity(features, ClassEnum.negative.value))*Decimal(self.priori(ClassEnum.negative.value))
 
-		return dividend/sumAcc
-		
+		return dividend/sumAcc		
 
 	def conditionalDensity(self, features, classId):
 		dataSource = None
@@ -57,25 +52,22 @@ class Bayes(Classifier):
 			dataSource = self.data_positive_learn
 
 		#TODO(Adailson): CALCULAR PRODUTÓRIO AQUI! (acho que é possivel otimizar os laços calculando pij,qij e rij em um unico laço visto que o j é igual para ambos toda vez que este produtorio rodar um laço)
-		productAcc = Decimal(1)
+		productAcc = 1
 		i = 0;
 		for xi in features:
 
-			p = Decimal(self.pij(i,classId))**(Decimal(xi*(xi +1))/Decimal(2))
-			if p == 0:
-				p = 1
+			if xi == 1:
+				exp_p = (Decimal(xi*(xi +1))/Decimal(2))
+				productAcc*= Decimal(self.pij(i,classId))**exp_p
+			elif xi == 0:
+				exp_q = (Decimal(1)-Decimal(xi**2))
+				productAcc*= Decimal(self.qij(i,classId))**exp_q
+			elif xi == -1:
+				r_exp = Decimal(xi*(xi -1))/Decimal(2)
+				productAcc *= Decimal(self.rij(i,classId))**r_exp				
+			else:
+				raise "Error in discrete pre-process."
 
-			q = Decimal(self.qij(i,classId))**(Decimal(1)-Decimal(xi**2))
-			if q == 0:
-				q = 1
-
-			r_exp = Decimal(xi*(xi -1))/Decimal(2)
-			r = getcontext().power(Decimal(self.rij(i,classId)),r_exp)
-			if r == 0:
-				r = 1
-			productAcc *= p
-			productAcc *= q
-			productAcc *= r
 			i +=1
 
 		return productAcc
@@ -168,9 +160,9 @@ class Bayes(Classifier):
 
 	def kFold_Cross_Validation(self, k):
 
-		print("> Cross K-Fold Validation")
-		print()
-		print("K = "+str(k))
+		# print("> Cross K-Fold Validation")
+		# print()
+		# print(">> K = "+str(k))
 
 		next_range_positive = 0
 		max_length_positive = len(self.data_positive)
@@ -180,13 +172,13 @@ class Bayes(Classifier):
 
 		set_size_positive = int(max_length_positive/k)
 		set_size_negative = int(max_length_negative/k)
-		print("Positive set size = "+str(set_size_positive))
-		print("Negative set size = "+str(set_size_negative))
-		print()
+		# print(">> Positive set size = "+str(set_size_positive))
+		# print(">> Negative set size = "+str(set_size_negative))
+		# print()
 
-		print("Positive max end value = "+str(max_length_positive))
-		print("Negative max end value = "+str(max_length_negative))
-		print()
+		# print(">> Positive max end value = "+str(max_length_positive))
+		# print(">> Negative max end value = "+str(max_length_negative))
+		# print()
 
 		#separete sets
 		positive_sets = []
@@ -250,10 +242,11 @@ class Bayes(Classifier):
 		all_wrongs = 0
 
 		#test loop
+		progress = 0.0
 		for index_test in range(0,k):
-
+			progress = index_test/k
 			#write in the same line
-			sys.stdout.write("\rTesting Progress: "+str(((index_test/k)*100))+"%")
+			sys.stdout.write("\r>> Testing Progress: "+str(progress*100)+"%")
 			sys.stdout.flush()
 
 			errors_positive = 0
@@ -278,11 +271,14 @@ class Bayes(Classifier):
 					self.data_negative_learn += negative_sets[i]
 
 			samples_p = 0
-			for p in data_positive_test:
+			for i,p in enumerate(data_positive_test):
+
+				# Classifying
 				answer = self.classify(p[0])
 				if answer != ClassEnum.positive.value:
 					errors_positive += 1
 				samples_p += 1
+
 
 			# print(" -> Correct: "+str(((samples_p-errors_positive)/samples_p)*100)+"%")
 			# print()
@@ -291,10 +287,13 @@ class Bayes(Classifier):
 			samples_n = 0
 
 			for n in data_negative_test:
+
+				# Classifying
 				answer = self.classify(n[0])
 				if answer != ClassEnum.negative.value:
 					errors_negative += 1
 				samples_n += 1
+
 
 			# print(" -> Correct: "+str(((samples_n-errors_negative)/samples_n)*100)+"%")
 
@@ -307,11 +306,14 @@ class Bayes(Classifier):
 
 			#fim do for
 
-		sys.stdout.write("\rTesting Progress"+str(((index_test/k)*100))+"%")
+		sys.stdout.write("\r>> Testing Progress 100 %")
 		sys.stdout.flush()
+
+		correctness = Decimal(all_corrects)/Decimal(all_wrongs+all_corrects)
 
 		print()
 		print()
-		print("FINAL REPORT")
-		print("Avarage of correct answers: "+str((all_corrects)/(all_wrongs+all_corrects)*100)+"%")
+		print("Correct answers AVG: "+str((correctness*100))+"%")
 		print("-----------------------------------------------")
+
+		return correctness

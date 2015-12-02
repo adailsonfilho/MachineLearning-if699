@@ -1,9 +1,9 @@
 import sys
 from ticTacToe import *
+from decimal import *
 from enum import Enum
 from classifier import *
 from random import randint
-import ipdb
 import numpy as np
 
 ##################
@@ -27,9 +27,14 @@ class PostKnnEstimation(Classifier):
 	def set_data(self, data):
 			self.data = data
 
+			for sample in self.data:
+				if sample[1] == ClassEnum.positive.value:
+					self.data_positive.append(sample)
+				elif sample[1] == ClassEnum.negative.value:
+					self.data_negative.append(sample)
+
 	#return the "k" nearest neighbors of the given "x"
 	def k_neighbors(self, k,x):		
-
 		distances = []
 		for i,sample in enumerate(self.learn_data):
 			d = dissimilarity(x, sample[0])
@@ -40,8 +45,8 @@ class PostKnnEstimation(Classifier):
 
 		return [e['index'] for e in distances[0:k]]
 
-	def classify(self,sample):
-		# sample = pre_process(sample, separator=',')
+	def posteriori_estimation(self, sample):
+			# sample = pre_process(sample, separator=',')
 		kn = self.k_neighbors(self.k,sample)
 		positive_votes = 0
 		negative_votes = 0
@@ -55,7 +60,13 @@ class PostKnnEstimation(Classifier):
 
 		n_estimation = (negative_votes/self.n_learn_size)*(self.n_learn_size/len(self.learn_data))
 		p_estimation = (positive_votes/self.p_learn_size)*(self.p_learn_size/len(self.learn_data))
-		if n_estimation > p_estimation:
+		return {'negative': n_estimation, 'positive':p_estimation}
+
+	def classify(self,sample):
+	
+		answer = self.posteriori_estimation(sample)
+		
+		if answer['negative'] > answer['positive']:
 			return ClassEnum.negative.value
 		else:
 			return ClassEnum.positive.value
@@ -73,15 +84,9 @@ class PostKnnEstimation(Classifier):
 
 	def kFold_Cross_Validation(self, k):
 
-		for sample in self.data:
-			if sample[1] == ClassEnum.positive.value:
-				self.data_positive.append(sample)
-			elif sample[1] == ClassEnum.negative.value:
-				self.data_negative.append(sample)
-
-		print("> Cross K-Fold Validation")
-		print()
-		print("K = "+str(k))
+		# print("> Cross K-Fold Validation")
+		# print()
+		# print(">> K = "+str(k))
 
 		next_range_positive = 0
 		max_length_positive = len(self.data_positive)
@@ -91,13 +96,13 @@ class PostKnnEstimation(Classifier):
 
 		set_size_positive = int(max_length_positive/k)
 		set_size_negative = int(max_length_negative/k)
-		print("Positive set size = "+str(set_size_positive))
-		print("Negative set size = "+str(set_size_negative))
-		print()
+		# print("Positive set size = "+str(set_size_positive))
+		# print("Negative set size = "+str(set_size_negative))
+		# print()
 
-		print("Positive max end value = "+str(max_length_positive))
-		print("Negative max end value = "+str(max_length_negative))
-		print()
+		# print("Positive max end value = "+str(max_length_positive))
+		# print("Negative max end value = "+str(max_length_negative))
+		# print()
 
 		#separete sets
 		positive_sets = []
@@ -111,7 +116,7 @@ class PostKnnEstimation(Classifier):
 		temp_data_negative = self.data_negative[:]
 
 		#criating data sub sets for cross k-fold validation
-		for set_index in range(0,k):
+		for set_index in range(k):
 
 			# print("creating positive set index "+str(set_index))
 			
@@ -152,8 +157,8 @@ class PostKnnEstimation(Classifier):
 			# print("Created: "+str(len(positive_sets[set_index]))+" samples")
 
 			#copy lists
-			temp_data_positive = self.data_positive[:]
-			temp_data_negative = self.data_negative[:]
+			# temp_data_positive = self.data_positive[:]
+			# temp_data_negative = self.data_negative[:]
 
 			#end for: creating sets
 
@@ -164,7 +169,7 @@ class PostKnnEstimation(Classifier):
 		for index_test in range(0,k):
 
 			#write in the same line
-			sys.stdout.write("\rTesting Progress: "+str(((index_test/k)*100))+"%")
+			sys.stdout.write("\r>> Testing Progress: "+str(((index_test/k)*100))+"%")
 			sys.stdout.flush()
 
 			errors_positive = 0
@@ -172,6 +177,8 @@ class PostKnnEstimation(Classifier):
 
 			#zera apontador de listas de aprendizado
 			self.learn_data = []
+
+
 
 			#a quantidade de conjuntos de classe eh igual apesar da diferença existir
 			data_positive_test = positive_sets[index_test]
@@ -184,32 +191,31 @@ class PostKnnEstimation(Classifier):
 			#cria lista de dados para aprendizagem com os sub-conjuntos que não sao de test
 			self.p_learn_size = 0
 			self.n_learn_size = 0
-			for i in range(0,k):
+
+			for i in range(k):
 				if i != index_test:
 					self.learn_data += positive_sets[i]
 					self.p_learn_size += len(positive_sets[i])
-
 					self.learn_data += negative_sets[i]
 					self.n_learn_size += len(negative_sets[i])
+					
 
 			samples_p = 0
-			for p in data_positive_test:
-				answer = self.classify(p[0])
-				if answer != ClassEnum.positive.value:
-					errors_positive += 1
-				samples_p += 1
-
-			# print(" -> Correct: "+str(((samples_p-errors_positive)/samples_p)*100)+"%")
-			# print()
-
-			# print("Negative Set "+str(index_test)+", size: "+str(len(data_negative_test)))
 			samples_n = 0
 
-			for n in data_negative_test:
-				answer = self.classify(n[0])
-				if answer != ClassEnum.negative.value:
-					errors_negative += 1
-				samples_n += 1
+			i_max = max(len(data_positive_test), len(data_negative_test))
+			for i in range(i_max):
+				if i < len(data_negative_test):
+					answer = self.classify(data_positive_test[i][0])
+					if answer != ClassEnum.positive.value:
+						errors_positive += 1
+					samples_p += 1
+				if i < len(data_negative_test):
+					answer = self.classify(data_negative_test[i][0])
+					if answer != ClassEnum.negative.value:
+						errors_negative += 1
+					samples_n += 1
+				
 
 			# print(" -> Correct: "+str(((samples_n-errors_negative)/samples_n)*100)+"%")
 
@@ -222,11 +228,15 @@ class PostKnnEstimation(Classifier):
 
 			#fim do for
 
-		sys.stdout.write("\rTesting Progress"+str(((index_test/k)*100))+"%")
+		sys.stdout.write("\r>> Testing Progress: COMPLETED")
 		sys.stdout.flush()
+
+		correctness = Decimal(all_corrects)/Decimal(all_wrongs+all_corrects)
 
 		print()
 		print()
 		print("FINAL REPORT")
-		print("Avarage of correct answers: "+str((all_corrects)/(all_wrongs+all_corrects)*100)+"%")
+		print("Avarage of correct answers: "+str((correctness*100))+"%")
 		print("-----------------------------------------------")
+
+		return correctness
