@@ -4,15 +4,8 @@ import warnings
 from enum import  Enum
 from sklearn import svm
 from random import randint
+from ticTacToe import *
 
-class FeatureEnum(Enum):
-	x = 1
-	o = 0
-	b = -1
-
-class ClassEnum(Enum):
-	positive = 1
-	negative = 0
 
 class SupportVectorMachine():
     def __init__(self):
@@ -30,27 +23,12 @@ class SupportVectorMachine():
 
 
 
-    def preProcess(self, line, separator):
-            features = []
-            classId = None
-            acc = ''
-
-            for x in line:
-                if x != ',' and x != '\n':
-                    acc += x
-                elif x == '\n':
-                    classId = ClassEnum[acc].value
-                else:
-                    features.append(FeatureEnum[acc].value)
-                    acc = ''
-
-            return (classId, features)
 
 
     def readData(self, path):
             with open(path) as f:
                 for line in f:
-                    processedLine = self.preProcess(line, separator=',')
+                    processedLine = self.pre_process(line, separator=',')
                     if processedLine[0] == ClassEnum.positive.value:
                         self.data_positive.append(processedLine)
 
@@ -232,6 +210,8 @@ class SupportVectorMachine():
         print("FINAL REPORT")
         print("Avarage of correct answers: "+str((all_corrects)/(all_wrongs+all_corrects)*100)+"%")
         print("-----------------------------------------------")
+
+        correctness = Decimal(all_corrects)/Decimal(all_wrongs+all_corrects)
         
 
     def runForestRun(self):
@@ -244,9 +224,14 @@ class SupportVectorMachine():
     #SVM part, using scikit learn
 if __name__ == "__main__":
 
-	support = SupportVectorMachine()
+    support = SupportVectorMachine()
 
-	
-	support.runForestRun()
+    support.runForestRun()
 
-	support.run_KFold_Cross_Validation(10)
+    repeat = 10
+
+    suport_history = []
+    for i in range(repeat):
+        correctness = support.run_KFold_Cross_Validation(10)
+        suport_history.append(correctness)
+

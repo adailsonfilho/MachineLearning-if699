@@ -1,4 +1,16 @@
 from enum import Enum
+from decimal import *
+from functools import reduce
+import math
+
+def conffiance(history):
+	mean = Decimal(reduce(lambda x, y: x + y, history)) / Decimal(len(history))
+	sumAcc = Decimal(0)
+	for h in history:
+		sumAcc += (h-mean)**2
+	sdev = Decimal(math.sqrt(sumAcc/Decimal(len(history))))
+	z = Decimal(1.96) #coeficiente de confiança p ara 95%
+	return z*sdev/Decimal(math.sqrt(len(history)))
 
 #Enumerate the var's categories
 class FeatureEnum(Enum): #how use that? FeatureEnum['x'] ou FeatureEnum.x

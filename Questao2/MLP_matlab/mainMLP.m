@@ -14,6 +14,7 @@ fixNegativos = floor(qtdNegativos/K);
 
 x = 0;
 error = 0;
+acerto = 0;
 teste = [];
 label = [];
 
@@ -97,10 +98,19 @@ for k = 1:K
     end
 
     error = error + immse(out, testLabel);
+    
+    [a,b] = size(out);
+    soma = 0;
+    for x = 1:a
+        if (out(x, 1) == testLabel(x, 1))
+            soma = soma+1;
+        end
+    end
+    acerto = acerto + soma/95;
+    
     disp(error);
     
     teste = [teste; testData];
     label = [label; testLabel];
     
 end
-

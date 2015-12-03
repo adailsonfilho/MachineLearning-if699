@@ -9,8 +9,8 @@ class SumRule(Classifier):
 		self.data_negative = n_data
 
 		''' Setting up weights for sum'''
-		self.bayes_weigh = Decimal(0.5) #bayes_weigh
-		self.knn_weigh = Decimal(0.5) # knn_weigh
+		self.bayes_weigh = bayes_weigh
+		self.knn_weigh = knn_weigh
 
 		'''
 		###############################
@@ -37,8 +37,10 @@ class SumRule(Classifier):
 		#sum rule in action
 
 
-		final_prob_negative = (knn_answer['negative']*self.knn_weigh) + (bayes_negative_posteriori*self.bayes_weigh)
-		final_prob_pegative = (knn_answer['positive']*self.knn_weigh) + (bayes_positive_posteriori*self.bayes_weigh)
+		p_priori = Decimal(self.knn.p_learn_size)/Decimal(self.knn.p_learn_size+self.knn.n_learn_size)
+		n_priori = Decimal(self.knn.n_learn_size)/Decimal(self.knn.p_learn_size+self.knn.n_learn_size)
+		final_prob_negative = n_priori*((knn_answer['negative']*self.knn_weigh) + (bayes_negative_posteriori*self.bayes_weigh))
+		final_prob_pegative = p_priori*((knn_answer['positive']*self.knn_weigh) + (bayes_positive_posteriori*self.bayes_weigh))
 		
 		if final_prob_negative > final_prob_pegative:
 			return ClassEnum.negative.value

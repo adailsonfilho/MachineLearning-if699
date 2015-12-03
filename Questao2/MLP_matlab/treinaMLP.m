@@ -10,7 +10,7 @@ bias = [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1];
 % Learning coefficient
 coeff = 0.7;
 % Number of learning iterations
-iterations = 1000;
+iterations = 500;
 % Calculate weights randomly using seed.
 rand('state',sum(100*clock));
 weights = -1 +2.*rand(colunas+1,colunas+1);

@@ -2,6 +2,7 @@ from bayes import *
 from postKnnEstimation import *
 from sumRule import *
 from functools import reduce
+import math
 # import ipdb
 
 data_positive = []	
@@ -15,6 +16,7 @@ def read_data(path):
 				data_positive.append(processedLine)
 			elif processedLine[1] == ClassEnum.negative.value:
 				data_negative.append(processedLine)
+
 
 if __name__ == "__main__":
 
@@ -65,6 +67,11 @@ if __name__ == "__main__":
 
 	l = knn_correctness_history
 	knn_correctness_avg = Decimal(reduce(lambda x, y: x + y, l)) / Decimal(len(l))
+
+	print("Conffiance interval - Bayes: ")
+	print(conffiance(bayes_correctness_history))
+	print("Conffiance interval - Knn: ")
+	print(conffiance(knn_correctness_history))
 
 
 	print("Bayes Correctness AVG: "+str(bayes_correctness_avg))
