@@ -5,6 +5,7 @@ from enum import Enum
 from classifier import *
 from random import randint
 import numpy as np
+import ipdb
 
 ##################
 #### METHODS #####
@@ -24,14 +25,26 @@ class PostKnnEstimation(Classifier):
 		self.learn_data = []		#data var for lear sets of cross k-fold validation
 		self.k = None			#"k" neighbors parameter
 
-	def set_data(self, data):
-			self.data = data
+	def set_data(self, data, learn_data = False):
 
-			for sample in self.data:
-				if sample[1] == ClassEnum.positive.value:
-					self.data_positive.append(sample)
-				elif sample[1] == ClassEnum.negative.value:
-					self.data_negative.append(sample)
+			if not learn_data:
+				self.data = data
+				for sample in self.data:
+					if sample[1] == ClassEnum.positive.value:
+						self.data_positive.append(sample)
+					elif sample[1] == ClassEnum.negative.value:
+						self.data_negative.append(sample)
+			else:
+				self.p_learn_size = 0
+				self.n_learn_size = 0
+
+				self.learn_data = data
+				
+				for sample in self.learn_data:
+					if sample[1] == ClassEnum.positive.value:
+						self.p_learn_size+=1
+					elif sample[1] == ClassEnum.negative.value:
+						self.n_learn_size+=1
 
 	#return the "k" nearest neighbors of the given "x"
 	def k_neighbors(self, k,x):		
@@ -40,7 +53,7 @@ class PostKnnEstimation(Classifier):
 			d = dissimilarity(x, sample[0])
 			# d = np.linalg.norm(np.array(x),np.array(sample[0]))
 			distances.append({'index': i, 'distance': d})
-
+			
 		distances = sorted(distances, key=lambda e:e['distance'])
 
 		return [e['index'] for e in distances[0:k]]
@@ -58,8 +71,8 @@ class PostKnnEstimation(Classifier):
 			else:
 				raise "Ops!Some some problem to classify in the correct class"
 
-		n_estimation = (negative_votes/self.n_learn_size)*(self.n_learn_size/len(self.learn_data))
-		p_estimation = (positive_votes/self.p_learn_size)*(self.p_learn_size/len(self.learn_data))
+		n_estimation = (Decimal(negative_votes)/Decimal(self.n_learn_size))*(Decimal(self.n_learn_size)/Decimal(len(self.learn_data)))
+		p_estimation = (Decimal(positive_votes)/Decimal(self.p_learn_size))*(Decimal(self.p_learn_size)/Decimal(len(self.learn_data)))
 		return {'negative': n_estimation, 'positive':p_estimation}
 
 	def classify(self,sample):
@@ -205,7 +218,7 @@ class PostKnnEstimation(Classifier):
 
 			i_max = max(len(data_positive_test), len(data_negative_test))
 			for i in range(i_max):
-				if i < len(data_negative_test):
+				if i < len(data_positive_test):
 					answer = self.classify(data_positive_test[i][0])
 					if answer != ClassEnum.positive.value:
 						errors_positive += 1

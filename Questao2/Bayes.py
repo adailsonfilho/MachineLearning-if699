@@ -24,9 +24,13 @@ class Bayes(Classifier):
 		self.data_positive_learn = []
 		self.data_negative_learn = []
 
-	def set_data(self, w1,w2):
-		self.data_positive = w1
-		self.data_negative = w2
+	def set_data(self, w1,w2,learn_data=False):
+		if not learn_data:
+			self.data_positive = w1
+			self.data_negative = w2
+		else:
+			self.data_positive_learn = w1
+			self.data_negative_learn = w2
 
 	def priori(self, classId):
 		if classId == ClassEnum.negative.value:
@@ -172,12 +176,12 @@ class Bayes(Classifier):
 
 		set_size_positive = int(max_length_positive/k)
 		set_size_negative = int(max_length_negative/k)
-		# print(">> Positive set size = "+str(set_size_positive))
-		# print(">> Negative set size = "+str(set_size_negative))
+		# print("Positive set size = "+str(set_size_positive))
+		# print("Negative set size = "+str(set_size_negative))
 		# print()
 
-		# print(">> Positive max end value = "+str(max_length_positive))
-		# print(">> Negative max end value = "+str(max_length_negative))
+		# print("Positive max end value = "+str(max_length_positive))
+		# print("Negative max end value = "+str(max_length_negative))
 		# print()
 
 		#separete sets
@@ -192,7 +196,7 @@ class Bayes(Classifier):
 		temp_data_negative = self.data_negative[:]
 
 		#criating data sub sets for cross k-fold validation
-		for set_index in range(0,k):
+		for set_index in range(k):
 
 			# print("creating positive set index "+str(set_index))
 			
@@ -242,11 +246,10 @@ class Bayes(Classifier):
 		all_wrongs = 0
 
 		#test loop
-		progress = 0.0
 		for index_test in range(0,k):
-			progress = index_test/k
+
 			#write in the same line
-			sys.stdout.write("\r>> Testing Progress: "+str(progress*100)+"%")
+			sys.stdout.write("\r>> Testing Progress: "+str(((index_test/k)*100))+"%")
 			sys.stdout.flush()
 
 			errors_positive = 0
@@ -265,35 +268,28 @@ class Bayes(Classifier):
 			# print("Positive Set "+str(index_test)+", size: "+str(len(data_positive_test)))
 
 			#cria lista de dados para aprendizagem com os sub-conjuntos que não sao de test
-			for i in range(0,k):
+
+			for i in range(k):
 				if i != index_test:
 					self.data_positive_learn += positive_sets[i]
-					self.data_negative_learn += negative_sets[i]
+					self.data_negative_learn += negative_sets[i]					
 
 			samples_p = 0
-			for i,p in enumerate(data_positive_test):
-
-				# Classifying
-				answer = self.classify(p[0])
-				if answer != ClassEnum.positive.value:
-					errors_positive += 1
-				samples_p += 1
-
-
-			# print(" -> Correct: "+str(((samples_p-errors_positive)/samples_p)*100)+"%")
-			# print()
-
-			# print("Negative Set "+str(index_test)+", size: "+str(len(data_negative_test)))
 			samples_n = 0
 
-			for n in data_negative_test:
-
-				# Classifying
-				answer = self.classify(n[0])
-				if answer != ClassEnum.negative.value:
-					errors_negative += 1
-				samples_n += 1
-
+			i_max = max(len(data_positive_test), len(data_negative_test))
+			for i in range(i_max):
+				if i < len(data_positive_test):
+					answer = self.classify(data_positive_test[i][0])
+					if answer != ClassEnum.positive.value:
+						errors_positive += 1
+					samples_p += 1
+				if i < len(data_negative_test):
+					answer = self.classify(data_negative_test[i][0])
+					if answer != ClassEnum.negative.value:
+						errors_negative += 1
+					samples_n += 1
+				
 
 			# print(" -> Correct: "+str(((samples_n-errors_negative)/samples_n)*100)+"%")
 
@@ -306,14 +302,15 @@ class Bayes(Classifier):
 
 			#fim do for
 
-		sys.stdout.write("\r>> Testing Progress 100 %")
+		sys.stdout.write("\r>> Testing Progress: COMPLETED")
 		sys.stdout.flush()
 
 		correctness = Decimal(all_corrects)/Decimal(all_wrongs+all_corrects)
 
 		print()
 		print()
-		print("Correct answers AVG: "+str((correctness*100))+"%")
+		print("FINAL REPORT")
+		print("Avarage of correct answers: "+str((correctness*100))+"%")
 		print("-----------------------------------------------")
 
 		return correctness
